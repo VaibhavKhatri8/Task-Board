@@ -34,7 +34,7 @@ const TaskList = ({
         {title}
       </div>
       <div className="task-list-content">
-        {tasks.map((task, index) => (
+        {tasks.map((task) => (
           <Task
             key={task.id}
             task={task}

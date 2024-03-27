@@ -26,9 +26,7 @@ const App = () => {
   };
 
   useEffect(() => {
-    let newFilteredTasks = {};
-
-    Object.entries(tasks).forEach(([status, statusTasks]) => {
+    const filterTasks = (statusTasks) => {
       let filtered = statusTasks;
 
       if (selectedAssignee) {
@@ -57,8 +55,15 @@ const App = () => {
         );
       }
 
-      newFilteredTasks[status] = filtered;
-    });
+      return filtered;
+    };
+
+    const newFilteredTasks = Object.fromEntries(
+      Object.entries(tasks).map(([status, statusTasks]) => [
+        status,
+        filterTasks(statusTasks),
+      ])
+    );
 
     setFilteredTasks(newFilteredTasks);
   }, [
@@ -79,90 +84,54 @@ const App = () => {
 
   const handleEditTask = (taskId, newStatus, newPriority) => {
     setTasks((prevTasks) => {
-      let task;
-      const statusKeys = [
-        "Pending",
-        "In Progress",
-        "Completed",
-        "Deployed",
-        "Deferred",
-      ];
-      for (let key of statusKeys) {
-        const taskIndex = prevTasks[key].findIndex(
-          (task) => task.id === taskId
-        );
-        if (taskIndex > -1) {
-          task = { ...prevTasks[key][taskIndex] }; // Copy the task instead of referencing it
-          prevTasks = {
-            // Create a new state instead of mutating the old one
-            ...prevTasks,
-            [key]: [
-              ...prevTasks[key].slice(0, taskIndex),
-              ...prevTasks[key].slice(taskIndex + 1),
-            ],
+      const updatedTasks = { ...prevTasks };
+
+      // Find and update the task
+      for (const key in updatedTasks) {
+        const tasks = updatedTasks[key];
+        const taskIndex = tasks.findIndex((task) => task.id === taskId);
+        if (taskIndex !== -1) {
+          const task = {
+            ...tasks[taskIndex],
+            status: newStatus,
+            priority: newPriority,
           };
-          break;
+          tasks.splice(taskIndex, 1);
+          updatedTasks[newStatus] = [...(updatedTasks[newStatus] || []), task];
+          return updatedTasks;
         }
       }
-      if (!statusKeys.includes(newStatus)) {
-        console.error(`Invalid status: ${newStatus}`);
-        return prevTasks;
-      }
-      console.log("Before update", task);
-      task.status = newStatus; // Update the status of the task
-      task.priority = newPriority; // Update the priority of the task
-      console.log("After update", task.id);
-      return { ...prevTasks, [newStatus]: [...prevTasks[newStatus], task] };
+
+      console.error(`Task with ID ${taskId} not found.`);
+      return prevTasks; // Return previous tasks if task not found
     });
   };
 
   const handleDeleteTask = (taskId) => {
     setTasks((prevTasks) => {
-      let task;
-      const statusKeys = [
-        "Pending",
-        "In Progress",
-        "Completed",
-        "Deployed",
-        "Deferred",
-      ];
-      for (let key of statusKeys) {
-        const taskIndex = prevTasks[key].findIndex(
-          (task) => task.id === taskId
-        );
-        if (taskIndex > -1) {
-          prevTasks = {
-            // Create a new state instead of mutating the old one
-            ...prevTasks,
-            [key]: [
-              ...prevTasks[key].slice(0, taskIndex),
-              ...prevTasks[key].slice(taskIndex + 1),
-            ],
-          };
-          break;
+      const updatedTasks = { ...prevTasks };
+
+      // Iterate through each status key
+      for (const key in updatedTasks) {
+        const tasks = updatedTasks[key];
+        const taskIndex = tasks.findIndex((task) => task.id === taskId);
+        if (taskIndex !== -1) {
+          tasks.splice(taskIndex, 1); // Remove task from tasks array
+          return updatedTasks;
         }
       }
-      return prevTasks;
+
+      console.error(`Task with ID ${taskId} not found.`);
+      return prevTasks; // Return previous tasks if task not found
     });
   };
 
   const getAssigneeNames = (tasks) => {
-    const statusKeys = [
-      "Pending",
-      "In Progress",
-      "Completed",
-      "Deployed",
-      "Deferred",
-    ];
-    let assigneeNames = [];
+    const assigneeNames = Object.values(tasks).flatMap((tasks) =>
+      tasks.map((task) => task.assignee)
+    );
 
-    for (let key of statusKeys) {
-      const names = tasks[key].map((task) => task.assignee);
-      assigneeNames = assigneeNames.concat(names);
-    }
-
-    const uniqueAssigneeNames = [...new Set(assigneeNames)];
-    return uniqueAssigneeNames;
+    return [...new Set(assigneeNames)];
   };
 
   return (
