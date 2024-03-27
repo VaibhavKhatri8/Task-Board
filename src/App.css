@@ -536,6 +536,9 @@
     margin-left: auto;
     margin-right: auto;
   }
+  .main-container {
+    width: 85%;
+  }
 }
 
 @media (max-width: 470px) {
@@ -556,5 +559,8 @@
   }
   .dropdown-menu {
     margin-left: 13rem;
+  }
+  .modal-content {
+    width: 20rem;
   }
 }
